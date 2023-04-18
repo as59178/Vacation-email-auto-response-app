@@ -44,10 +44,11 @@ app.get('/', async (req,res)=> {
 
   async function getUnrepliedMessages(auth){
     const gmail = google.gmail({version: 'v1', auth});
-    const res = await gmail.users.messages.get({
+    const res = await gmail.users.messages.list({
       userId: 'me',
      q: '-in:chats -from:me -has:userlabels',
     });
+    // console.table(res)
     return res.data.messages || [];
   }
 
@@ -59,6 +60,8 @@ app.get('/', async (req,res)=> {
     format: 'metadata',
     metadataHeaders: ['Subject', 'From'],
   });
+
+
 
   const subject = res.data.payload.headers.find(
     (header) => header.name === 'Subject'
@@ -81,6 +84,8 @@ app.get('/', async (req,res)=> {
   ].join('\n');
 
   const encodedMessage = Buffer.from(rawMessage).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+
   await gmail.users.messages.send({
     userId: 'me',
     requestBody: {
@@ -121,8 +126,8 @@ async function addLabel(auth, message, labelId){
     userId: 'me',
     id: message.id,
     requestBody: {
-      addLabelIDs: [labelId],
-      removeLabelIDs: ['INBOX'],
+      addLabelIds: [labelId],
+      removeLabelIds: ['INBOX'],
     },
   });}
 
@@ -131,12 +136,14 @@ async function addLabel(auth, message, labelId){
     console.log(`Created label with ID ${labelId}`);
 
     setInterval(async () => {
-      const message   = await getUnrepliedMessages(auth);
-      console.log(`Found ${message.length} messages`);
+      const messages   = await getUnrepliedMessages(auth);
+      console.log(`Found ${messages.length} unreplied messages`);
+
+      //yaha tk ho gya hai
 
       for (const message of messages){
         await sendReply(auth, message);
-        console.log(`Replied to message with ID ${message.id}`);
+        console.log(`sent Reply to message with ID ${message.id}`);
 
         await addLabel(auth, message, labelId);
         console.log(`Added label to message id ${message.id}`)
@@ -153,6 +160,9 @@ async function addLabel(auth, message, labelId){
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 });
+
+
+
 
 
 
